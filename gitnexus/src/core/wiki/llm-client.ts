@@ -88,7 +88,7 @@ export async function resolveLLMConfig(overrides?: Partial<LLMConfig>): Promise<
       (localProvider ? undefined : process.env.GITNEXUS_MODEL) ||
       savedLocalModel ||
       (localProvider ? '' : savedConfig.model || 'minimax/minimax-m2.5'),
-    maxTokens: overrides?.maxTokens ?? 16_384,
+    maxTokens: overrides?.maxTokens ?? 8_192,
     temperature: overrides?.temperature ?? 0,
     provider: savedProvider ?? 'openai',
     apiVersion:
@@ -214,9 +214,21 @@ export async function callLLM(
   // Validate base URL before any fetch (CodeQL js/http-to-file-access)
   validateLLMBaseUrl(config.baseUrl);
 
-  const messages: Array<{ role: string; content: string }> = [];
+  type MessageContent =
+    | string
+    | Array<{ type: string; text: string; cache_control?: { type: string } }>;
+  const messages: Array<{ role: string; content: MessageContent }> = [];
   if (systemPrompt) {
-    messages.push({ role: 'system', content: systemPrompt });
+    // OpenRouter passes cache_control through to Anthropic models, enabling
+    // prompt caching on stable system prompts (same content across many calls).
+    if (config.provider === 'openrouter') {
+      messages.push({
+        role: 'system',
+        content: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+      });
+    } else {
+      messages.push({ role: 'system', content: systemPrompt });
+    }
   }
   messages.push({ role: 'user', content: prompt });
 

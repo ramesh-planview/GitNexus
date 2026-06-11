@@ -183,8 +183,12 @@ export function formatCallEdges(
     .join('\n');
 }
 
+const MAX_PROCESSES = 5;
+const MAX_STEPS_PER_PROCESS = 8;
+
 /**
  * Format process traces as readable text.
+ * Capped at MAX_PROCESSES flows and MAX_STEPS_PER_PROCESS steps each to bound token usage.
  */
 export function formatProcesses(
   processes: Array<{
@@ -195,14 +199,24 @@ export function formatProcesses(
 ): string {
   if (processes.length === 0) return 'No execution flows detected for this module.';
 
-  return processes
+  const truncatedProcesses = processes.slice(0, MAX_PROCESSES);
+  const result = truncatedProcesses
     .map((p) => {
-      const stepsText = p.steps
+      const steps = p.steps.slice(0, MAX_STEPS_PER_PROCESS);
+      const stepsText = steps
         .map((s) => `  ${s.step}. ${s.name} (${shortPath(s.filePath)})`)
         .join('\n');
-      return `**${p.label}** (${p.type}):\n${stepsText}`;
+      const stepsSuffix =
+        p.steps.length > MAX_STEPS_PER_PROCESS
+          ? `\n  ... and ${p.steps.length - MAX_STEPS_PER_PROCESS} more steps`
+          : '';
+      return `**${p.label}** (${p.type}):\n${stepsText}${stepsSuffix}`;
     })
     .join('\n\n');
+
+  return processes.length > MAX_PROCESSES
+    ? `${result}\n\n... and ${processes.length - MAX_PROCESSES} more flows`
+    : result;
 }
 
 /**

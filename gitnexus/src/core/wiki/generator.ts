@@ -103,8 +103,8 @@ export interface WikiRunResult {
 
 // ─── Constants ────────────────────────────────────────────────────────
 
-const DEFAULT_MAX_TOKENS_PER_MODULE = 30_000;
-const GROUPING_TOKEN_BUDGET = 100_000;
+const DEFAULT_MAX_TOKENS_PER_MODULE = 15_000;
+const GROUPING_TOKEN_BUDGET = 60_000;
 const WIKI_DIR = 'wiki';
 
 // ─── Generator Class ──────────────────────────────────────────────────
